@@ -40,7 +40,7 @@ export function formattedShareText(origin: string, places: Place[]): string {
   if (places.length === 0) return "";
   const lines = places.map((p, i) => `${i + 1}. ${p.name.en}${isFood(p.category) ? " 🍽️" : ""}`);
   const url = shareUrl(origin, places.map((p) => p.slug));
-  return `🪔 My Pujo 2026 Plan (${places.length} stops):\n${lines.join("\n")}\n\nOpen route on PujoGuide:\n${url}`;
+  return `🪔 My Pujo 2026 Plan (${places.length} stops):\n${lines.join("\n")}\n\nOpen route on PujoMap:\n${url}`;
 }
 
 /** Google's travelmode names. Transit can't carry waypoints, so it's only used for single legs. */

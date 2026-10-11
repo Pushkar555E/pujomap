@@ -28,16 +28,17 @@ import { PlaceIcon } from "@/lib/placeIcon";
 import { isFood, type Crowd, type Place } from "@/lib/schema";
 import { findNearbyEats } from "@/lib/route/geo";
 import { useUI } from "@/store/ui";
-import { findNearestAmenity } from "@/lib/amenities";
+import { AMENITY_LABELS, findNearestAmenity, type AmenityType } from "@/lib/amenities";
 import { clsx } from "clsx";
 import { HoursCard } from "./HoursCard";
 import { MenuCard } from "./MenuCard";
 
 /** Pins at "area" confidence aren't the real spot, so route by name rather than by coordinates. */
-const directionsUrl = (p: Place) => {
+const directionsUrl = (p: Place, origin?: { lat: number; lng: number } | null) => {
   const dest =
     p.coordConfidence === "area" ? encodeURIComponent(`${p.name.en}, Kolkata`) : `${p.lat},${p.lng}`;
-  return `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
+  const originParam = origin ? `&origin=${origin.lat},${origin.lng}` : "";
+  return `https://www.google.com/maps/dir/?api=1&destination=${dest}${originParam}`;
 };
 
 const CROWD: Record<Crowd, { label: string; dots: number }> = {
@@ -54,6 +55,7 @@ export function PlaceDetail({ place: p }: { place: Place }) {
   const stopNo = useUI((s) => s.route.stops.indexOf(p.slug) + 1);
   const saved = useUI((s) => s.saved.includes(p.slug));
   const visited = useUI((s) => s.visited.includes(p.slug));
+  const userPos = useUI((s) => s.userPos);
   const myNote = useUI((s) => s.notes[p.slug] ?? "");
   const meta = CATEGORY_META[p.category];
 
@@ -214,7 +216,7 @@ export function PlaceDetail({ place: p }: { place: Place }) {
             </div>
           )}
           {p.sourceNote && (
-            <span className="block text-[10px] text-muted pt-1">Verified: {p.sourceNote}</span>
+            <span className="block text-[10px] text-muted pt-1">Source: {p.sourceNote}</span>
           )}
         </div>
       )}
@@ -241,7 +243,9 @@ export function PlaceDetail({ place: p }: { place: Place }) {
           <span>
             {p.coordConfidence === "area"
               ? "Approximate pin. It sits in the right neighbourhood but not on the exact spot yet. Directions search by name."
-              : "Pin matched by name on OpenStreetMap. Pandals move every year, so confirm the spot before you set out."}
+              : p.coordConfidence === "directory"
+                ? "Pin imported from the linked 2026 pandal directory. Pandals move every year, so confirm the spot before you set out."
+                : "Pin matched by name on OpenStreetMap. Pandals move every year, so confirm the spot before you set out."}
           </span>
         </p>
       )}
@@ -377,7 +381,7 @@ export function PlaceDetail({ place: p }: { place: Place }) {
         </motion.button>
         <div className="flex gap-2">
           <motion.a
-            href={directionsUrl(p)}
+            href={directionsUrl(p, userPos)}
             target="_blank"
             rel="noreferrer"
             whileTap={{ scale: 0.96 }}
@@ -439,6 +443,7 @@ function NearbyEatsCard({ spot }: { spot: Place }) {
   const stops = useUI((s) => s.route.stops);
   const addStop = useUI((s) => s.addStop);
   const select = useUI((s) => s.select);
+  const userPos = useUI((s) => s.userPos);
   const nearby = useMemo(() => findNearbyEats(spot, places, stops, 1.2, 3), [spot, stops]);
 
   if (nearby.length === 0 || isFood(spot.category)) return null;
@@ -446,7 +451,7 @@ function NearbyEatsCard({ spot }: { spot: Place }) {
   return (
     <section className="space-y-2 rounded-2xl border border-line bg-surface p-4">
       <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted">
-        <ForkKnife size={16} weight="duotone" className="text-primary" /> Famous food &amp; sweets nearby
+        <ForkKnife size={16} weight="duotone" className="text-primary" /> Street food &amp; sweets nearby
       </h3>
       <div className="space-y-2 pt-1">
         {nearby.map(({ place: f, distKm }) => (
@@ -457,19 +462,33 @@ function NearbyEatsCard({ spot }: { spot: Place }) {
               className="flex min-w-0 flex-1 items-center gap-2 text-left hover:underline"
             >
               <PlaceIcon place={f} size={15} />
-              <span className="truncate font-medium">{f.name.en}</span>
-              <span className="shrink-0 text-muted">
-                {distKm < 1 ? `${Math.round(distKm * 1000)}m` : `${distKm.toFixed(1)}km`}
+              <span className="min-w-0">
+                <span className="block truncate font-medium">{f.name.en}</span>
+                <span className="block text-[11px] text-muted">
+                  {f.category === "street_food" ? "Street food" : f.category === "sweets" ? "Sweets" : "Food & drink"} ·{" "}
+                  {distKm < 1 ? `${Math.round(distKm * 1000)}m away` : `${distKm.toFixed(1)}km away`}
+                </span>
               </span>
             </button>
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.9 }}
-              onClick={() => addStop(f.slug)}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary hover:bg-primary/20"
-            >
-              <Plus size={13} weight="bold" /> Add
-            </motion.button>
+            <div className="flex shrink-0 items-center gap-1">
+              <a
+                href={directionsUrl(f, userPos)}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Get directions to ${f.name.en}`}
+                className="grid size-8 place-items-center rounded-full bg-surface text-primary hover:bg-primary/10"
+              >
+                <NavigationArrow size={15} weight="fill" />
+              </a>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.9 }}
+                onClick={() => addStop(f.slug)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary hover:bg-primary/20"
+              >
+                <Plus size={13} weight="bold" /> Add
+              </motion.button>
+            </div>
           </div>
         ))}
       </div>
@@ -478,10 +497,16 @@ function NearbyEatsCard({ spot }: { spot: Place }) {
 }
 
 function NearbyAmenitiesCard({ place }: { place: Place }) {
-  const toilet = findNearestAmenity(place.lat, place.lng, "toilet");
-  const police = findNearestAmenity(place.lat, place.lng, "police_booth");
+  const userPos = useUI((s) => s.userPos);
+  const amenityTypes: AmenityType[] = ["toilet", "water", "police_booth", "first_aid"];
+  const nearby = amenityTypes
+    .map((type) => {
+      const result = findNearestAmenity(place.lat, place.lng, type);
+      return result ? { ...result, type } : null;
+    })
+    .filter((result): result is NonNullable<typeof result> => result !== null);
 
-  if (!toilet && !police) return null;
+  if (nearby.length === 0) return null;
 
   return (
     <section className="space-y-2.5 rounded-2xl border border-line bg-surface p-4">
@@ -499,55 +524,30 @@ function NearbyAmenitiesCard({ place }: { place: Place }) {
       </div>
 
       <div className="grid grid-cols-1 gap-2 text-xs">
-        {toilet && (
-          <div className="flex items-center justify-between rounded-xl border border-line/60 bg-surface2 p-2.5">
+        {nearby.map(({ amenity, distanceKm, type }) => (
+          <div key={amenity.id} className="flex items-center justify-between rounded-xl border border-line/60 bg-surface2 p-2.5">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-base">🚽</span>
+              <span className="text-base">{AMENITY_LABELS[type].icon}</span>
               <div className="min-w-0">
-                <b className="block truncate font-semibold">{toilet.amenity.name}</b>
+                <b className="block truncate font-semibold">{amenity.name}</b>
                 <span className="text-[11px] text-muted">
-                  {toilet.distanceKm < 1
-                    ? `${Math.round(toilet.distanceKm * 1000)} m away`
-                    : `${toilet.distanceKm.toFixed(1)} km away`}{" "}
-                  · {toilet.amenity.area}
+                  {AMENITY_LABELS[type].label} ·{" "}
+                  {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m away` : `${distanceKm.toFixed(1)} km away`}{" "}
+                  · {amenity.area}
                 </span>
               </div>
             </div>
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${toilet.amenity.lat},${toilet.amenity.lng}`}
+              href={`https://www.google.com/maps/dir/?api=1&destination=${amenity.lat},${amenity.lng}${userPos ? `&origin=${userPos.lat},${userPos.lng}` : ""}`}
               target="_blank"
               rel="noreferrer"
+              aria-label={`Get directions to ${amenity.name}`}
               className="shrink-0 rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20"
             >
               Directions
             </a>
           </div>
-        )}
-
-        {police && (
-          <div className="flex items-center justify-between rounded-xl border border-line/60 bg-surface2 p-2.5">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-base">👮</span>
-              <div className="min-w-0">
-                <b className="block truncate font-semibold">{police.amenity.name}</b>
-                <span className="text-[11px] text-muted">
-                  {police.distanceKm < 1
-                    ? `${Math.round(police.distanceKm * 1000)} m away`
-                    : `${police.distanceKm.toFixed(1)} km away`}{" "}
-                  · {police.amenity.area}
-                </span>
-              </div>
-            </div>
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${police.amenity.lat},${police.amenity.lng}`}
-              target="_blank"
-              rel="noreferrer"
-              className="shrink-0 rounded-lg bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-primary/20"
-            >
-              Directions
-            </a>
-          </div>
-        )}
+        ))}
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
-# Contributing to PujoGuide
+# Contributing to PujoMap
 
-Welcome! To maintain code quality, reliable builds, and accurate data for PujoGuide during festival development, follow these core practices:
+Welcome! To maintain code quality, reliable builds, and accurate data for PujoMap during festival development, follow these core practices:
 
 ## 1. Branching & Commit Conventions
 - **Feature Branches**: Use dedicated feature or tool branches (`feat/...`, `fix/...`) for non-trivial updates.

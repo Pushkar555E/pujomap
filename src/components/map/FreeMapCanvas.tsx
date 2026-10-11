@@ -1,16 +1,16 @@
 "use client";
 
 import "maplibre-gl/dist/maplibre-gl.css";
-import { CrosshairSimple, FirstAid, ShieldCheck, TrainSimple, X } from "@phosphor-icons/react";
+import { Cube, CrosshairSimple, FirstAid, ShieldCheck, TrainSimple, X } from "@phosphor-icons/react";
 import * as maplibregl from "maplibre-gl";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Layer, Marker, Source, type MapRef } from "react-map-gl/maplibre";
-import { placeBySlug } from "@/lib/data";
+import { placeBySlug, places } from "@/lib/data";
 import { routePlaces } from "@/lib/route/useLegs";
 import { isFood } from "@/lib/schema";
 import { metroLinesGeoJSON, metroStationsGeoJSON } from "@/lib/metro";
-import { KOLKATA_BOUNDS, type Place } from "@/lib/schema";
+import { KOLKATA_BOUNDS, mapZoneFor, type Place } from "@/lib/schema";
 import { useFiltered } from "@/lib/useFiltered";
 import { useUI } from "@/store/ui";
 import { PlacePin, type PinState } from "./PlacePin";
@@ -22,9 +22,9 @@ import { clsx } from "clsx";
 
 if (typeof window !== "undefined") maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
-// Free, key-less OpenStreetMap vector styles (CARTO). Check their terms before commercial use.
-const STYLE_LIGHT = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
-const STYLE_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+// OpenFreeMap provides key-less OpenMapTiles styles and includes building extrusions at higher zooms.
+const STYLE_LIGHT = "https://tiles.openfreemap.org/styles/liberty";
+const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 
 const MAX_BOUNDS: [number, number, number, number] = [
   KOLKATA_BOUNDS.west - 0.15,
@@ -39,6 +39,8 @@ export function FreeMapCanvas() {
   const mapRef = useRef<MapRef>(null);
   const [view, setView] = useState<View | null>(null);
   const [labelFont, setLabelFont] = useState<string[] | null>(null);
+  const [is3D, setIs3D] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   const { rendered, matched } = useFiltered();
   const selected = useUI((s) => s.selected);
@@ -49,6 +51,7 @@ export function FreeMapCanvas() {
   const stops = useUI((s) => s.route.stops);
   const visited = useUI((s) => s.visited);
   const tab = useUI((s) => s.tab);
+  const mapZone = useUI((s) => s.filters.mapZone);
   const filtersActive = matched.size !== rendered.length || mode === "filter";
 
   const [selectedAmenity, setSelectedAmenity] = useState<Amenity | null>(null);
@@ -64,16 +67,27 @@ export function FreeMapCanvas() {
   // Reuse the basemap's own label font so station names render without a separate glyph source.
   const onLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
+    setLabelFont(null);
     const font = map
       ?.getStyle()
       .layers.map((l) => (l.layout as Record<string, unknown> | undefined)?.["text-font"])
       .find((f): f is string[] => Array.isArray(f));
     if (font) setLabelFont(font);
+    setMapLoaded(true);
     syncView();
   }, [syncView]);
 
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+    map.easeTo({ pitch: is3D ? 55 : 0, bearing: is3D ? -12 : 0, duration: 500 });
+  }, [is3D]);
+
   // Route stops are never clustered: they always show as numbered pins.
-  const routePins = useMemo(() => routePlaces(stops), [stops]);
+  const routePins = useMemo(
+    () => routePlaces(stops).filter((p) => !mapZone || mapZoneFor(p) === mapZone),
+    [stops, mapZone],
+  );
   const clusterable = useMemo(() => rendered.filter((p) => !stops.includes(p.slug)), [rendered, stops]);
 
   // Two independent cluster groups: heritage + pandals, and food. Food shows only as count bubbles
@@ -96,6 +110,38 @@ export function FreeMapCanvas() {
       duration: 700,
     });
   }, [selected]);
+
+  // A selected district is both a filter and a camera target. Keep the whole festival
+  // cluster in frame so visitors can immediately see where its pandals are concentrated.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const { inset } = useUI.getState();
+    const padding = { top: 56, right: 52, left: inset.left + 48, bottom: inset.bottom + 52 };
+    if (!mapZone) {
+      map.easeTo({ center: [88.3639, 22.5726], zoom: 11.6, padding: { left: inset.left, bottom: inset.bottom, top: 0, right: 0 }, duration: 800 });
+      return;
+    }
+    const districtPlaces = rendered.filter((p) => !isFood(p.category) && mapZoneFor(p) === mapZone);
+    const targets = districtPlaces.length
+      ? districtPlaces
+      : places.filter((p) => !isFood(p.category) && mapZoneFor(p) === mapZone);
+    if (!targets.length) return;
+    const lngs = targets.map((p) => p.lng);
+    const lats = targets.map((p) => p.lat);
+    const west = Math.min(...lngs);
+    const east = Math.max(...lngs);
+    const south = Math.min(...lats);
+    const north = Math.max(...lats);
+    // Give a single-place district a useful neighborhood view instead of a zero-area bounds.
+    const bounds = [
+      west === east ? west - 0.009 : west,
+      south === north ? south - 0.009 : south,
+      west === east ? east + 0.009 : east,
+      south === north ? north + 0.009 : north,
+    ] as [number, number, number, number];
+    map.fitBounds(bounds, { padding, maxZoom: 14.2, duration: 850 });
+  }, [mapZone, mapLoaded]);
 
   // Smoothly frame search results when typing a search query.
   const query = useUI((s) => s.query);
@@ -223,7 +269,7 @@ export function FreeMapCanvas() {
         ref={mapRef}
         mapLib={maplibregl}
         mapStyle={dark ? STYLE_DARK : STYLE_LIGHT}
-        initialViewState={{ longitude: 88.3639, latitude: 22.5726, zoom: 11.6 }}
+        initialViewState={{ longitude: 88.3639, latitude: 22.5726, zoom: 11.6, pitch: 0, bearing: 0 }}
         minZoom={9.5}
         maxBounds={MAX_BOUNDS}
         attributionControl={{ compact: true }}
@@ -231,6 +277,22 @@ export function FreeMapCanvas() {
         onMoveEnd={syncView}
         style={{ width: "100%", height: "100%" }}
       >
+        {is3D && (
+          <Layer
+            id="pujo-building-3d"
+            type="fill-extrusion"
+            source="openmaptiles"
+            source-layer="building"
+            minzoom={14}
+            beforeId="road_label"
+            paint={{
+              "fill-extrusion-color": dark ? "#3b302b" : "#d8c9b8",
+              "fill-extrusion-height": ["coalesce", ["get", "render_height"], ["get", "height"], 8],
+              "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], ["get", "min_height"], 0],
+              "fill-extrusion-opacity": 0.86,
+            }}
+          />
+        )}
         {showMetro && (
           <>
             <Source id="metro-lines" type="geojson" data={metroLinesGeoJSON}>
@@ -365,7 +427,7 @@ export function FreeMapCanvas() {
                   <span className="text-[11px] font-medium text-muted">{selectedAmenity.area}</span>
                 )}
                 <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${selectedAmenity.lat},${selectedAmenity.lng}`}
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${selectedAmenity.lat},${selectedAmenity.lng}${userPos ? `&origin=${userPos.lat},${userPos.lng}` : ""}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-fg hover:opacity-90"
@@ -401,6 +463,13 @@ export function FreeMapCanvas() {
           onClick={() => useUI.getState().toggleMetro()}
         >
           <TrainSimple size={22} weight={showMetro ? "fill" : "bold"} />
+        </MapButton>
+        <MapButton
+          label={is3D ? "Switch to 2D map" : "Switch to 3D map"}
+          active={is3D}
+          onClick={() => setIs3D((value) => !value)}
+        >
+          <Cube size={22} weight={is3D ? "fill" : "bold"} />
         </MapButton>
       </div>
     </div>

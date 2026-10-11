@@ -39,7 +39,7 @@ async function overpass(query: string) {
         body: "data=" + encodeURIComponent(query),
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": "PujoGuide/0.1 (personal Durga Puja map project)",
+          "User-Agent": "PujoMap/0.1 (personal Durga Puja map project)",
           Accept: "application/json",
         },
       });

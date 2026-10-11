@@ -15,6 +15,8 @@ const REGION_LABEL: Record<Region, string> = {
   central: "Central",
   south: "South",
   saltlake: "Salt Lake",
+  east: "East Kolkata",
+  howrah: "Howrah",
 };
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {

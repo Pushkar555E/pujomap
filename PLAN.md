@@ -1,4 +1,4 @@
-# PujoGuide — Kolkata Durga Puja Map & Route Planner
+# PujoMap — Kolkata Durga Puja Map & Route Planner
 ### Phase-wise build plan (Next.js + Google Maps Platform, hosted on Vercel)
 
 > Written 5 Oct 2026. Durga Puja 2026 (most sources agree): **Mahalaya Sat 10 Oct · Shashthi Sat 17 Oct · Saptami Sun 18 · Ashtami Mon 19 · Navami Tue 20 · Dashami Wed 21**. One source lists Dashami as the 20th, so confirm against a Bengali panjika before hard-coding dates (they live in one config file anyway).
@@ -155,7 +155,7 @@ If slippage happens, cut in this order: collaborative trip → crowd reports →
 
 ### 3.2 Repo layout
 ```
-pujoguide/
+pujomap/
 ├─ app/
 │  ├─ [locale]/(shell)/layout.tsx          # app shell, theme, providers
 │  ├─ [locale]/(shell)/page.tsx            # map home
@@ -228,7 +228,7 @@ Effort is in focused person-days for a single developer working with an AI pair.
   - *Browser key*: HTTP-referrer restricted (`localhost:3000/*`, `*.vercel.app/*`, prod domain), API-restricted to Maps JS + Places (New)
   - *Server key*: API-restricted to Routes + Places (New) + Geocoding; used only in route handlers (Vercel IPs are dynamic so IP-restriction isn't practical — rely on API restriction + rate limiting + budget caps)
 - [ ] **Budget alerts at 50/80/100 %** and **per-API daily quota caps** in GCP (prevents a viral-weekend surprise bill)
-- [ ] Create **Map IDs**: `pujoguide-light`, `pujoguide-dark` (vector, Advanced Markers enabled). Style in Cloud Console: mute POIs, soften roads, emphasise metro/transit, hide irrelevant POIs so our pins stand out
+- [ ] Create **Map IDs**: `pujomap-light`, `pujomap-dark` (vector, Advanced Markers enabled). Style in Cloud Console: mute POIs, soften roads, emphasise metro/transit, hide irrelevant POIs so our pins stand out
 - [ ] Vercel project, env vars (`NEXT_PUBLIC_GMAPS_KEY`, `GMAPS_SERVER_KEY`, `NEXT_PUBLIC_MAP_ID_LIGHT/DARK`, `UPSTASH_*`), set `preferredRegion = 'bom1'` for API routes
 - [ ] CI: GitHub Actions (typecheck, lint, vitest, playwright smoke), Vercel preview per PR
 
@@ -282,7 +282,7 @@ Known issues spotted in your list:
 
 **2.1 Brand direction — "Pujo Utsav"**: warm, festive, lamp-lit. Not generic map-app grey.
 - Motifs: Lal-Paar (red-border white saree), alpona patterns as subtle section dividers, sindoor red, genda-marigold gold, dhak/shiuli whites, festive string-light glow in dark mode
-- Logo: simple wordmark "PujoGuide" with a pin/dhunuchi-flame glyph; SVG, works at 16 px favicon
+- Logo: simple wordmark "PujoMap" with a pin/dhunuchi-flame glyph; SVG, works at 16 px favicon
 
 **2.2 Colour tokens** (OKLCH in CSS variables, Tailwind v4 `@theme`). Starting values (tune visually, then validate contrast):
 
@@ -590,7 +590,7 @@ Checklist of the "extremely smooth" bar:
 1. **Google Cloud billing account**: do you have one (card required) — and are you OK with a monthly cap of ~₹? (Set the cap in Phase 0.)
 2. **Language**: Bengali UI from day 1 (adds ~1 day) or English-first with Bengali in v1.1?
 3. **Data curation**: who verifies pandal locations/timings with you on the ground? (Biggest quality lever.)
-4. **Domain/name**: keep "PujoGuide"? Custom domain or `*.vercel.app` for now?
+4. **Domain/name**: keep "PujoMap"? Custom domain or `*.vercel.app` for now?
 5. **Scope**: confirm the fast-track cut-list (collaborative trips and crowd reports after Puja) is acceptable.
 6. **Ride-hailing**: deep links only (my recommendation) vs. exploring official partner APIs (slow, likely unavailable).
 
@@ -598,7 +598,7 @@ Checklist of the "extremely smooth" bar:
 
 ## 9. Immediate next steps (when you say go)
 
-1. Scaffold the Next.js project in `D:\Projects\PujoGuide`, wire Vercel, add the design tokens and theme toggle
+1. Scaffold the Next.js project in `D:\Projects\PujoMap`, wire Vercel, add the design tokens and theme toggle
 2. Run `clean-seed.ts` on your pasted list → produce the de-duplicated places table and review CSV for you to eyeball
 3. Create the Google Cloud keys/Map IDs (I'll give you exact console steps; keys must be created by you — never paste them into chat)
 4. Ship the map + filters slice for v0.1 by Mahalaya (10 Oct)

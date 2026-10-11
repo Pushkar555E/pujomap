@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { places, zones } from "./data";
+import { isFood, mapZoneFor } from "./schema";
 import { applyFilters } from "./filter";
 import { buildSearch } from "./search";
 import { useNow } from "./useNow";
@@ -24,7 +25,9 @@ export function useFiltered() {
     const mine = { saved: new Set(saved), visited: new Set(visited) };
     const { visible, matched } = applyFilters(places, filters, search(query), mine, weekday === undefined || minute === undefined ? undefined : { weekday, minute });
     const hasSearchQuery = query.trim().length > 0;
-    const rendered = hasSearchQuery || mode === "filter" ? visible.filter((p) => matched.has(p.id)) : visible;
+    // A map district is a geographic scope, so it always removes out-of-zone pins (even in Highlight mode).
+    const inZone = filters.mapZone ? visible.filter((p) => mapZoneFor(p) === filters.mapZone) : visible;
+    const rendered = hasSearchQuery || mode === "filter" ? inZone.filter((p) => matched.has(p.id)) : inZone;
     const list = visible
       .filter((p) => matched.has(p.id))
       .sort((a, b) => a.name.en.localeCompare(b.name.en));

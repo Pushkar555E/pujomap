@@ -1,19 +1,21 @@
-# PujoGuide 🪔
+# PujoMap 🪔
 
 > **Kolkata Durga Puja Interactive Map, Route Planner & Heritage Festival Guide**
 
-PujoGuide is a high-performance Progressive Web Application (PWA) designed for navigating Kolkata during Durga Puja. It brings together **339 verified pandals, Bonedi Baris (heritage family pujas), sweet shops, cafes, and restaurants** onto one unified interactive map with multi-modal route planning, live tour navigation, smart auto-planning, and offline resilience.
+PujoMap is the dedicated festival map project in this workspace. It includes filters for Big pujas, Bonedi Bari, Theme, Traditional, Housing, and Other pujas. Theme and Traditional use the source dataset's tags and details. Big pujas are inferred from recorded awards, extreme crowd ratings, or 1,000+ reviews. Housing includes Laboni Estate, documented in the dataset as a housing-estate community Puja.
+
+PujoMap is a Progressive Web Application (PWA) for navigating Kolkata during Durga Puja. It brings together **338 curated places**, including pandals, Bonedi Baris (heritage family pujas), sweet shops, cafes, and restaurants, on one interactive map with multi-modal route planning, live tour guidance, smart auto-planning, and offline resilience.
 
 ---
 
 ## 🌟 Key Features
 
 ### 1. Interactive Dual Map Canvas
-- **MapLibre GL / Google Maps Integration**: Powered by free CARTO Voyager / Dark Matter tiles with OpenStreetMap data, seamlessly switching to Google Maps JavaScript API when an optional Google Places key (`NEXT_PUBLIC_GMAPS_KEY`) is present.
+- **OpenFreeMap Basemaps**: MapLibre renders OpenFreeMap's Liberty and Dark vector styles, based on OpenStreetMap data. Routes and directions are provided separately from the basemap.
 - **Dynamic HTML Pins & Clusters**: Custom rotated teardrop pins colored by category (Vermilion for Pandals, Antique Gold for Bonedi Baris, Teal for Food) with visited checkmarks and stop order badges.
 
 ### 2. Comprehensive Pandal & Heritage Coverage
-- **339 Verified Spots**: Complete dataset spanning North, Central, South Kolkata, and Salt Lake.
+- **338 documented places**: Pandals, heritage homes, and food destinations across North, Central, South Kolkata, and Salt Lake.
 - **25+ Bonedi Baris**: Including Shobhabazar (Boro & Choto), Pathuriaghata, Darjipara Mitra Bari, Chatu Babu Latu Babu, Hathkhola Dutta Bari, Malapara Mullick Bari, Daw Baris, Chorbagan Baris, Thanthaniya Laha Bari, Jhamapukur Chandra Bari, Bhowanipore Mallick Bari, and Behala Sabarna Roy Choudhury Atchala.
 
 ### 3. 24 Curated Marathon Routes & Catalog Controls
@@ -54,7 +56,7 @@ PujoGuide is a high-performance Progressive Web Application (PWA) designed for n
 |---|---|
 | **Framework** | Next.js 15 (App Router), React 19, TypeScript |
 | **Styling** | Tailwind CSS v4, Motion (Framer Motion v12), Phosphor Icons |
-| **Map Rendering** | MapLibre GL JS, Mapbox GL Draw, Google Maps JS API (optional) |
+| **Map Rendering** | MapLibre GL JS with OpenFreeMap vector styles and OpenStreetMap data |
 | **State Management** | Zustand (with persistent localStorage middleware) |
 | **UI Components** | Vaul (Drawer for mobile bottom-sheet), Radix UI primitives |
 | **Validation & Schema** | Zod v3 |
@@ -65,12 +67,12 @@ PujoGuide is a high-performance Progressive Web Application (PWA) designed for n
 ### Key Directory Structure
 
 ```
-PujoGuide/
+PujoMap/
 ├── src/
 │   ├── app/                    # Next.js App Router (layout, page, manifest, globals.css)
 │   ├── components/
 │   │   ├── filters/            # FilterGroups, FilterToggle, facet chips
-│   │   ├── map/                # MapCanvas, FreeMapCanvas, GoogleMapCanvas, PlacePin, RouteLayer
+│   │   ├── map/                # MapLibre/OpenFreeMap canvas, place pins, clusters, and route layers
 │   │   ├── place/              # PlaceDetail, PlaceList, HoursCard, MenuCard
 │   │   ├── plan/               # PlanView, PlansCatalog, AutoPlanner, LiveTourMode, EditRouteModal
 │   │   ├── ui/                 # Chip, ThemeToggle, Logo, AutoRickshawIcon
@@ -79,7 +81,7 @@ PujoGuide/
 │   │   ├── Panel.tsx           # Main control panel (search, tabs, filters, place list)
 │   │   └── TodayStrip.tsx      # Festival countdown, weather, Puja Day Mode toggle
 │   ├── data/                   # Cleaned runtime datasets
-│   │   ├── places.json         # 339 validated places (pandals, baris, food)
+│   │   ├── places.json         # 338 validated places (pandals, baris, food)
 │   │   ├── zones.json          # 17 Kolkata neighborhood zones
 │   │   ├── metro.json          # Kolkata Metro line stations & connectivity graph
 │   │   └── amenities.json      # Toilets, water, first aid, police stations
@@ -108,7 +110,7 @@ PujoGuide/
 ## 🔍 Code Review & Data Integrity Assessment
 
 ### 1. Data Schema & Strict Typing (`src/lib/schema.ts`)
-- All 339 place objects in `places.json` are parsed through Zod (`placeSchema.parse()`).
+- All 338 place objects in `places.json` are parsed through Zod (`placeSchema.parse()`).
 - Data integrity tests enforce:
   - Valid coordinates within Kolkata bounding box (`22.40` to `22.75` N, `88.20` to `88.52` E).
   - No duplicated coordinates or stacked pins on the exact same lat/lng.
@@ -143,7 +145,7 @@ PujoGuide/
 ```bash
 # Clone the repository
 git clone https://github.com/SatyakiMandal/PujoGuide.git
-cd PujoGuide
+cd pujomap
 
 # Install dependencies (runs postinstall script for MapLibre worker)
 npm install
@@ -177,6 +179,6 @@ npm start
 
 ## 📄 License & Attribution
 
-- **Map Data**: OpenStreetMap contributors, CARTO Voyager/Dark Matter.
+- **Map Data**: [OpenFreeMap](https://github.com/hyperknot/openfreemap) public vector tile service, OpenMapTiles, and OpenStreetMap contributors.
 - **Icons**: Phosphor Icons.
 - **Festival Calendar & Data**: Researched and curated for Kolkata Durga Puja.

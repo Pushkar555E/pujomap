@@ -1,7 +1,32 @@
 import { z } from "zod";
 
-export const REGIONS = ["north", "central", "south", "saltlake"] as const;
+export const REGIONS = ["north", "central", "south", "saltlake", "east", "howrah"] as const;
 export type Region = (typeof REGIONS)[number];
+
+export const MAP_ZONES = [
+  { id: "north-central", label: "North & Central" },
+  { id: "bidhannagar-new-town", label: "Bidhannagar & New Town" },
+  { id: "south-kolkata", label: "South Kolkata" },
+  { id: "south-south-east", label: "South & South East" },
+  { id: "port-area", label: "Port Area" },
+  { id: "behala-barisha", label: "Behala & Barisha" },
+  { id: "kasba-garia", label: "Kasba & Garia" },
+  { id: "howrah", label: "Howrah" },
+] as const;
+export type MapZoneId = (typeof MAP_ZONES)[number]["id"];
+
+/** Assign each place to one of the visitor-facing map districts. */
+export function mapZoneFor(place: Pick<Place, "region" | "area" | "name" | "address" | "zones" | "lat" | "lng">): MapZoneId {
+  const words = [place.area, place.name.en, place.address ?? "", ...place.zones].join(" ").toLowerCase();
+  if (place.region === "howrah" || /howrah|shibpur|salkia|\bbally\b|andul|santragachi|domjur|uluberia|ramrajatala/.test(words)) return "howrah";
+  if (/kidder|kidderpore|garden reach|metiabruz|watgunge|mominpur|port area|khidirpur/.test(words)) return "port-area";
+  if (/behala|barisha|thakurpukur|joka|sakher bazar/.test(words)) return "behala-barisha";
+  if (/kasba|garia|naktala|baghajatin|jadavpur|garfa|patuli|sonarpur|rajpur/.test(words)) return "kasba-garia";
+  if (place.region === "south" && place.lat >= 22.48 && place.lng >= 88.32 && place.lng <= 88.40) return "south-kolkata";
+  if (place.region === "saltlake" || place.region === "east" || /bidhannagar|salt ?lake|new ?town|rajarhat|baguiati|kestopur|dum dum|kaikhali|tegharia/.test(words)) return "bidhannagar-new-town";
+  if (place.region === "north" || place.region === "central") return "north-central";
+  return "south-south-east";
+}
 
 export const CATEGORIES = [
   "bonedi_bari",
@@ -64,6 +89,7 @@ export type Diet = (typeof DIETS)[number];
  *   area     – placed near its neighbourhood centre, NOT the real spot
  *   osm      – matched by name on OpenStreetMap, near the expected neighbourhood
  *   verified – an exact pin: saved by the user in Google Maps, or confirmed in data/overrides.json
+ *   directory – a mapped pin imported from the public Durga Puja Kolkata directory
  */
 export const CROWDS = ["low", "medium", "high", "extreme"] as const;
 export type Crowd = (typeof CROWDS)[number];
@@ -135,7 +161,7 @@ export const placeSchema = z.object({
   area: z.string(),
   lat: z.number(),
   lng: z.number(),
-  coordConfidence: z.enum(["area", "osm", "verified"]),
+  coordConfidence: z.enum(["area", "osm", "verified", "directory"]),
   metro: z.array(z.string()),
   tags: z.array(z.string()),
   notes: z.string().optional(),
@@ -194,4 +220,4 @@ export const zoneSchema = z.object({
 });
 export type Zone = z.infer<typeof zoneSchema>;
 
-export const KOLKATA_BOUNDS = { south: 22.4, north: 22.75, west: 88.2, east: 88.52 };
+export const KOLKATA_BOUNDS = { south: 22.32, north: 22.81, west: 88.08, east: 88.54 };

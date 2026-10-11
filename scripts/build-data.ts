@@ -80,6 +80,137 @@ const places: Place[] = rows.map((row) => {
   });
 });
 
+// ── Mapped pandals from the public Durga Puja Kolkata map (snapshot of its 617 available pins) ───
+// Source: https://www.durgapujakolkata.in/api/pandals, retrieved 2026-10-11.
+type ReferencePandal = {
+  id: string;
+  name: string;
+  slug: string;
+  zone: "north" | "south" | "central" | "east" | "howrah" | "others";
+  locality?: string;
+  categories: string[];
+  lat: number;
+  lng: number;
+  address?: string;
+  rating?: number;
+  crowdLevel?: string;
+};
+const referencePandals = readJson<ReferencePandal[]>("data/reference-pandals.json", []);
+const referenceZoneId: Record<ReferencePandal["zone"], string> = {
+  north: "north",
+  south: "south",
+  central: "central",
+  east: "east_kolkata",
+  howrah: "howrah",
+  others: "others",
+};
+const regionZoneId: Record<Place["region"], string> = {
+  north: "north",
+  central: "central",
+  south: "south",
+  saltlake: "salt_lake",
+  east: "east_kolkata",
+  howrah: "howrah",
+};
+const referenceRegion = (p: ReferencePandal): Place["region"] => {
+  if (p.zone === "east") return "east";
+  if (p.zone === "howrah") return "howrah";
+  if (p.zone !== "others") return p.zone;
+  if (p.lng >= 88.41) return "saltlake";
+  if (p.lat >= 22.58) return "north";
+  if (p.lat <= 22.52) return "south";
+  return "central";
+};
+const genericPandalWords = new Set([
+  "durga", "puja", "pujo", "pandal", "durgotsab", "durgotsav", "sarbojanin", "sarbojonin",
+  "committee", "comm", "samity", "club", "sangha", "sangh", "association", "society", "mandal",
+]);
+const nameCore = (name: string) =>
+  (name.toLowerCase().normalize("NFKD").match(/[a-z0-9]+/g) ?? []).filter((w) => !genericPandalWords.has(w)).join("");
+const nameRaw = (name: string) => name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "");
+const seedPandals = places.filter((p) => p.category === "pandal");
+let referenceMerged = 0;
+let referenceAdded = 0;
+for (const source of referencePandals) {
+  const sourceCore = nameCore(source.name);
+  const sourceRaw = nameRaw(source.name);
+  let existing: Place | undefined;
+  if (sourceCore.length >= 6) {
+    existing = seedPandals.find((p) =>
+      [p.name.en, ...p.aliases].some((name) => {
+        const core = nameCore(name);
+        const raw = nameRaw(name);
+        if (core.length >= 6 && core === sourceCore) return true;
+        if (raw === sourceRaw) return true;
+        const shorter = Math.min(core.length, sourceCore.length);
+        const longer = Math.max(core.length, sourceCore.length);
+        return shorter >= 8 && shorter / longer >= 0.66 && (core.includes(sourceCore) || sourceCore.includes(core));
+      }),
+    );
+  }
+
+  const tags = source.categories.map((category) =>
+    category === "theme-based" ? "theme" : category,
+  );
+  if (/housing|residency|residential|colony|society/i.test(`${source.name} ${source.locality ?? ""}`)) tags.push("housing");
+  const crowd = ["low", "medium", "high", "extreme"].includes(source.crowdLevel ?? "")
+    ? (source.crowdLevel as Place["crowd"])
+    : undefined;
+  if (existing) {
+    if (!existing.aliases.some((alias) => nameRaw(alias) === sourceRaw) && nameRaw(existing.name.en) !== sourceRaw) {
+      existing.aliases.push(source.name);
+    }
+    existing.tags = [...new Set([...existing.tags, ...tags])];
+    if (existing.coordConfidence === "area") {
+      existing.lat = source.lat;
+      existing.lng = source.lng;
+      existing.coordConfidence = "directory";
+    }
+    existing.address ??= source.address;
+    existing.rating ??= source.rating;
+    existing.crowd ??= crowd;
+    existing.sourceNote ??= "Also listed in the public 2026 Durga Puja Kolkata directory.";
+    if (source.categories.includes("award-winner")) {
+      existing.awards = [...new Set([...(existing.awards ?? []), "Listed as an award winner in the 2026 directory"])];
+    }
+    referenceMerged++;
+    continue;
+  }
+
+  const region = referenceRegion(source);
+  const regionZone = regionZoneId[region];
+  const sourceZone = referenceZoneId[source.zone];
+  const zoneIds = [...new Set([regionZone, sourceZone])];
+  let slug = source.slug || slugify(source.name);
+  if (used.has(slug)) slug = `${slug}-${source.zone}`;
+  used.add(slug);
+  places.push(
+    placeSchema.parse({
+      id: slug,
+      slug,
+      category: "pandal",
+      name: { en: source.name },
+      aliases: [],
+      zones: zoneIds,
+      region,
+      area: source.locality || source.zone,
+      lat: source.lat,
+      lng: source.lng,
+      coordConfidence: "directory",
+      metro: [],
+      tags: [...new Set(tags)],
+      address: source.address,
+      awards: source.categories.includes("award-winner")
+        ? ["Listed as an award winner in the 2026 directory"]
+        : undefined,
+      crowd,
+      rating: source.rating,
+      sourceNote: "Listing and map pin imported from the public 2026 Durga Puja Kolkata directory.",
+    }),
+  );
+  referenceAdded++;
+}
+
 // ── Foods from the user's Google Maps lists (see scripts/ingest-lists.ts) ──────────────────────────
 type Generated = {
   slug: string; name: string; category: Place["category"]; zones: string[]; area: string;
@@ -288,13 +419,14 @@ writeFileSync("src/data/places.json", JSON.stringify(places, null, 1));
 writeFileSync("src/data/zones.json", JSON.stringify(zones, null, 1));
 
 console.log(`${curatedCount} best-of picks added.`);
+console.log(`Reference directory: ${referencePandals.length} mapped pandals represented (${referenceAdded} added, ${referenceMerged} merged).`);
 console.log(`Snapshot applied to ${snapApplied} places; ${snapRejected.length} rejected as a different place.`);
 for (const r of snapRejected) console.log(`  - ${r}`);
 console.log(`Research applied to ${researched} places from ${researchFiles.length} files.`);
 const count = (c: string) => places.filter((p) => p.category === c).length;
 console.log(
   `Wrote ${places.length} places: ${count("bonedi_bari")} bonedi baris, ${count("pandal")} pandals, ` +
-    `(${places.filter((p) => p.coordConfidence === "osm").length} OSM-matched, ${places.filter((p) => p.coordConfidence === "verified").length} verified) ` +
+    `(${places.filter((p) => p.coordConfidence === "directory").length} directory pins, ${places.filter((p) => p.coordConfidence === "osm").length} OSM-matched, ${places.filter((p) => p.coordConfidence === "verified").length} verified) ` +
     `${places.length - count("bonedi_bari") - count("pandal")} food. ` +
     `${places.filter((p) => p.needsReview).length} flagged needsReview.`,
 );

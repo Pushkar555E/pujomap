@@ -32,6 +32,16 @@
  {
   "id": "howrah",
   "name": "Howrah",
+  "region": "howrah"
+ },
+ {
+  "id": "east_kolkata",
+  "name": "East Kolkata",
+  "region": "east"
+ },
+ {
+  "id": "others",
+  "name": "Other mapped areas",
   "region": "central"
  },
  {

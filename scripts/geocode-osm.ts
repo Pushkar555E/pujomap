@@ -13,7 +13,7 @@ import { haversineKm } from "../src/lib/route/geo";
 
 const CACHE = "data/geocoded.json";
 const MAX_KM = 2.5;
-const UA = "PujoGuide/0.1 (personal Durga Puja map project; contact via repo owner)";
+const UA = "PujoMap/0.1 (personal Durga Puja map project; contact via repo owner)";
 
 type Hit = { lat: number; lng: number; name: string; osm: string; kind: string } | null;
 const cache: Record<string, Hit> = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : {};

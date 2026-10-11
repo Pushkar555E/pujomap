@@ -27,7 +27,7 @@ import type { Region } from "@/lib/schema";
 import { useUI } from "@/store/ui";
 import { clsx } from "clsx";
 
-const REGION_LABEL: Record<Region, string> = { north: "North", central: "Central", south: "South", saltlake: "Salt Lake" };
+const REGION_LABEL: Record<Region, string> = { north: "North", central: "Central", south: "South", saltlake: "Salt Lake", east: "East Kolkata", howrah: "Howrah" };
 const GROUP_LABEL: Record<Group, string> = { solo: "Solo", couple: "Couple", friends: "Friends", family: "Family", elders: "With elders" };
 const INTEREST_LABEL: Record<Interest, string> = {
   heritage: "Heritage",

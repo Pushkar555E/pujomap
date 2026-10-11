@@ -26,7 +26,7 @@ test("service worker takes control and the app shell loads offline", async ({ pa
 
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole("heading", { name: /PujoGuide/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /PujoMap/ })).toBeVisible();
   await expect(page.getByText(/\d+ of \d+ shown/)).toBeVisible();
   // Saved data still works offline: open a place straight from the bundled data.
   await page.goto("/?place=flurys");

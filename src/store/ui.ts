@@ -4,10 +4,11 @@ import { placeBySlug } from "@/lib/data";
 import { defaultRequest, type PlanRequest } from "@/lib/autoplan";
 import type { PujaDayId } from "@/lib/calendar";
 import { defaultFilters, type FilterState, type Personal } from "@/lib/filter";
+import type { MapZoneId } from "@/lib/schema";
 import type { LegGeometry } from "@/lib/route/estimate";
 import type { Mode } from "@/lib/route/types";
 
-type ListKey = "zones" | "metro" | "cuisines" | "vibes" | "diets" | "sources";
+type ListKey = "zones" | "metro" | "cuisines" | "vibes" | "diets" | "sources" | "pujaTypes";
 export type FilterMode = "highlight" | "filter";
 export type Tab = "explore" | "plan";
 
@@ -64,6 +65,7 @@ type UIState = {
   toggleVisited: (slug: string) => void;
   setNote: (slug: string, text: string) => void;
   setPersonal: (p: Personal | null) => void;
+  setMapZone: (zone: MapZoneId | null) => void;
   toggleClosed: () => void;
   clearRoute: () => void;
   setLegMode: (key: string, mode: Mode | null) => void;
@@ -153,6 +155,7 @@ export const useUI = create<UIState>()(
           return { notes };
         }),
       setPersonal: (personal) => set((s) => ({ filters: { ...s.filters, personal } })),
+      setMapZone: (mapZone) => set((s) => ({ filters: { ...s.filters, mapZone }, selected: null, query: "" })),
       toggleClosed: () => set((s) => ({ filters: { ...s.filters, showClosed: !s.filters.showClosed } })),
       clearRoute: () => set((s) => ({ route: { ...emptyRoute, pujaNight: s.route.pujaNight } })),
       setLegMode: (key, mode) =>
@@ -186,7 +189,7 @@ export const useUI = create<UIState>()(
       reset: () => set((s) => ({ filters: { ...defaultFilters, layers: s.filters.layers }, query: "" })),
     }),
     {
-      name: "pujoguide:v1",
+      name: "pujomap:v1",
       // Persist only what the user built; skipHydration + manual rehydrate avoids SSR mismatches.
       partialize: (s) => ({ route: s.route, planReq: s.planReq, showMetro: s.showMetro, pujaDayMode: s.pujaDayMode, mode: s.mode, saved: s.saved, visited: s.visited, notes: s.notes }),
       skipHydration: true,

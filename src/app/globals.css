@@ -2,44 +2,44 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* "Shiuli" (light): ivory paper, sindoor red actions, antique-gold heritage, one teal for food */
+/* Puja Atlas: midnight indigo, marigold, and a paper-map ground. */
 :root {
-  --bg: #fbf6ee;
-  --surface: #ffffff;
-  --surface-2: #f4ebdd;
-  --fg: #2a2019;
-  --muted: #75675a;
-  --line: rgb(42 32 25 / 0.12);
-  --primary: #c8402a;
+  --bg: #f5f3ea;
+  --surface: #fffefa;
+  --surface-2: #e9e7df;
+  --fg: #201c39;
+  --muted: #716d7e;
+  --line: rgb(32 28 57 / 0.14);
+  --primary: #a52d55;
   --primary-fg: #ffffff;
-  --accent: #b7791f;
+  --accent: #e4a82d;
   --pin-fg: #ffffff;
-  --shadow: 0 8px 28px rgb(74 40 20 / 0.14);
+  --shadow: 0 10px 34px rgb(32 28 57 / 0.14);
 
-  --c-bari: #96691a;
-  --c-pandal: #c8402a;
-  --c-food: #1f7a74;
-  --route: #2f5fd0;
+  --c-bari: #bf7c18;
+  --c-pandal: #a52d55;
+  --c-food: #137c78;
+  --route: #493fba;
 }
 
-/* "Raat" (dark): warm charcoal, lamp-lit gold and vermilion */
+/* Night mela: indigo ink, hibiscus and lamp gold. */
 .dark {
-  --bg: #141110;
-  --surface: #1e1917;
-  --surface-2: #2b2421;
-  --fg: #f4ece2;
-  --muted: #a99b8d;
-  --line: rgb(255 244 230 / 0.1);
-  --primary: #f2664a;
-  --primary-fg: #1b0d09;
-  --accent: #e8b04a;
-  --pin-fg: #17110e;
-  --shadow: 0 8px 28px rgb(0 0 0 / 0.55);
+  --bg: #151326;
+  --surface: #211e36;
+  --surface-2: #2c2944;
+  --fg: #f5f0e6;
+  --muted: #aaa5bd;
+  --line: rgb(245 240 230 / 0.12);
+  --primary: #f07883;
+  --primary-fg: #251a2e;
+  --accent: #f1bd54;
+  --pin-fg: #211326;
+  --shadow: 0 10px 34px rgb(0 0 0 / 0.48);
 
-  --c-bari: #e3b04b;
-  --c-pandal: #f2664a;
-  --c-food: #4fc3b5;
-  --route: #7ea2ff;
+  --c-bari: #f1bd54;
+  --c-pandal: #f07883;
+  --c-food: #52c6b1;
+  --route: #a89cff;
 }
 
 @theme inline {
@@ -100,8 +100,8 @@ body {
   position: relative;
   width: 36px;
   height: 36px;
-  border-radius: 50% 50% 50% 8%;
-  transform: rotate(-45deg);
+  border-radius: 13px 13px 13px 4px;
+  clip-path: polygon(50% 0%, 61% 28%, 91% 9%, 72% 39%, 100% 50%, 72% 61%, 91% 91%, 61% 72%, 50% 100%, 39% 72%, 9% 91%, 28% 61%, 0% 50%, 28% 39%, 9% 9%, 39% 28%);
   background: var(--pin);
   color: var(--pin-fg);
   border: 2.5px solid var(--surface);
@@ -114,14 +114,12 @@ body {
     filter 260ms ease;
   cursor: pointer;
 }
-.pin > svg {
-  transform: rotate(45deg);
-}
+.pin > svg { transform: none; }
 .pin:hover {
-  transform: rotate(-45deg) scale(1.12);
+  transform: scale(1.12);
 }
 .pin[data-state="selected"] {
-  transform: rotate(-45deg) scale(1.3);
+  transform: scale(1.3);
   box-shadow:
     0 0 0 4px color-mix(in srgb, var(--pin) 35%, transparent),
     0 6px 16px rgb(0 0 0 / 0.4);
@@ -130,7 +128,7 @@ body {
 .pin[data-state="dim"] {
   opacity: 0.22;
   filter: grayscale(1);
-  transform: rotate(-45deg) scale(0.8);
+  transform: scale(0.8);
 }
 .pin[data-state="match"] {
   box-shadow:
@@ -141,7 +139,8 @@ body {
 .cluster {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: 15px 15px 15px 5px;
+  transform: rotate(-4deg);
   display: grid;
   place-items: center;
   font: 700 14px var(--font-sans);
@@ -167,6 +166,36 @@ body {
   padding-bottom: 8px;
   cursor: pointer;
 }
+.festival-header {
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%);
+}
+.zone-rail {
+  background: color-mix(in srgb, var(--bg) 88%, var(--primary) 12%);
+  mask-image: linear-gradient(to right, transparent, black 14px, black calc(100% - 20px), transparent);
+}
+.zone-chip {
+  display: inline-flex;
+  min-height: 31px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px 10px 10px 3px;
+  background: var(--surface);
+  padding: 0 11px;
+  color: var(--fg);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
+}
+.zone-chip:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--primary) 45%, var(--line)); }
+.zone-chip-active { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.zone-chip-index {
+  color: var(--primary);
+  font: 800 9px/1 var(--font-sans);
+  letter-spacing: .05em;
+}
+.zone-chip-active .zone-chip-index { color: var(--accent); }
 .pin-stop {
   position: absolute;
   top: -9px;

@@ -1,4 +1,4 @@
-# PujoGuide PRD: next release (v1.1)
+# PujoMap PRD: next release (v1.1)
 
 Status: draft for review. Written 6 Oct 2026, 11 days before Shashthi (Sat 17 Oct).
 Owner: Satyaki. Scope: personal use, single user, phone-first.

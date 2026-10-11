@@ -1,9 +1,9 @@
-/* PujoGuide service worker: makes the app open offline with map tile caching ("Puja Day Mode").
+/* PujoMap service worker: makes the app open offline with map tile caching ("Puja Day Mode").
  * - Static assets (/_next/static, icons, MapLibre worker): cache-first.
- * - Map tiles, styles, fonts (CARTO / MapLibre): cache-first with network fallback.
+ * - Map tiles, styles, fonts (OpenFreeMap / MapLibre): cache-first with network fallback.
  * - Page loads: network-first, falling back to cached offline shell. */
-const CACHE = "pujoguide-v2-amenities";
-const TILE_CACHE = "pujoguide-tiles-v1";
+const CACHE = "pujomap-v2-amenities";
+const TILE_CACHE = "pujomap-tiles-v2-openfreemap";
 
 self.addEventListener("install", () => self.skipWaiting());
 
@@ -21,10 +21,9 @@ const isStatic = (url) =>
   url.pathname.startsWith("/icons/") ||
   url.pathname.startsWith("/maplibre/");
 
-const MAP_HOSTS = ["cartocdn.com", "openstreetmap.org", "maplibre.org"];
+const MAP_HOSTS = ["openfreemap.org", "openfreemap.com", "openmaptiles.org", "openstreetmap.org", "maplibre.org"];
 
-// Exact host or a proper subdomain of it — substring matching (e.g. `includes`) would
-// let a lookalike host like "cartocdn.com.evil.tld" pass and get cached as trusted.
+// Exact host or a proper subdomain only; substring matching could trust a lookalike domain.
 const isMapResource = (url) =>
   MAP_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
 

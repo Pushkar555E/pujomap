@@ -2,9 +2,9 @@
 
 import { AdvancedMarker, APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
 import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
-import { CrosshairSimple, FirstAid, ShieldCheck, TrainSimple } from "@phosphor-icons/react";
+import { Cube, CrosshairSimple, FirstAid, ShieldCheck, TrainSimple } from "@phosphor-icons/react";
 import { useTheme } from "next-themes";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { PlacePin } from "./PlacePin";
 import { placeBySlug } from "@/lib/data";
@@ -115,7 +115,7 @@ function UserMarker() {
   );
 }
 
-function MapControls() {
+function MapControls({ is3D, setIs3D }: { is3D: boolean; setIs3D: (value: boolean) => void }) {
   const map = useMap();
   const showMetro = useUI((s) => s.showMetro);
   const showAmenities = useUI((s) => s.showAmenities);
@@ -149,6 +149,13 @@ function MapControls() {
         onClick={() => useUI.getState().toggleMetro()}
       >
         <TrainSimple size={22} weight={showMetro ? "fill" : "bold"} />
+      </MapButton>
+      <MapButton
+        label={is3D ? "Switch to 2D map" : "Switch to 3D map"}
+        active={is3D}
+        onClick={() => setIs3D(!is3D)}
+      >
+        <Cube size={22} weight={is3D ? "fill" : "bold"} />
       </MapButton>
     </div>
   );
@@ -185,6 +192,7 @@ function MapButton({
 
 export function GoogleMapCanvas({ apiKey }: { apiKey: string }) {
   const { resolvedTheme } = useTheme();
+  const [is3D, setIs3D] = useState(false);
 
   return (
     <APIProvider apiKey={apiKey}>
@@ -194,6 +202,8 @@ export function GoogleMapCanvas({ apiKey }: { apiKey: string }) {
           colorScheme={resolvedTheme === "dark" ? "DARK" : "LIGHT"}
           defaultCenter={CENTER}
           defaultZoom={12}
+          tilt={is3D ? 45 : 0}
+          heading={is3D ? -12 : 0}
           minZoom={10}
           gestureHandling="greedy"
           disableDefaultUI
@@ -211,7 +221,7 @@ export function GoogleMapCanvas({ apiKey }: { apiKey: string }) {
           <Markers />
           <UserMarker />
         </Map>
-        <MapControls />
+        <MapControls is3D={is3D} setIs3D={setIs3D} />
       </div>
     </APIProvider>
   );

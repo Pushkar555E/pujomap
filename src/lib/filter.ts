@@ -1,7 +1,9 @@
 import { openAt } from "./hours";
-import { isFood, type Category, type Cuisine, type Diet, type Place, type Source, type Vibe } from "./schema";
+import { isFood, mapZoneFor, type Category, type Cuisine, type Diet, type MapZoneId, type Place, type Source, type Vibe } from "./schema";
 
 export type Personal = "saved" | "visited" | "unvisited";
+export const PUJA_TYPES = ["big", "bonedi", "theme", "traditional", "housing", "other"] as const;
+export type PujaType = (typeof PUJA_TYPES)[number];
 export type Mine = { saved: Set<string>; visited: Set<string> };
 /** Kolkata weekday (Monday = 0) and minutes since midnight. */
 export type Clock = { weekday: number; minute: number };
@@ -9,7 +11,10 @@ export type Clock = { weekday: number; minute: number };
 export type FilterState = {
   /** Which kinds of place exist on the map at all. */
   layers: Category[];
+  /** Festival-specific puja classifications; empty means all pujas. */
+  pujaTypes: PujaType[];
   zones: string[];
+  mapZone: MapZoneId | null;
   metro: string[];
   cuisines: Cuisine[];
   vibes: Vibe[];
@@ -33,7 +38,9 @@ export type FilterState = {
 
 export const defaultFilters: FilterState = {
   layers: ["bonedi_bari", "pandal"],
+  pujaTypes: [],
   zones: [],
+  mapZone: null,
   metro: [],
   cuisines: [],
   vibes: [],
@@ -53,7 +60,9 @@ const anyOf = <T,>(wanted: T[], have: T[] | undefined) =>
 
 /** Facets within one group are OR; groups are AND. Food facets only constrain food places. */
 function passesFacets(p: Place, f: FilterState, mine?: Mine, now?: Clock): boolean {
+  if (f.pujaTypes.length && !isFood(p.category) && !matchesPujaType(p, f.pujaTypes)) return false;
   if (f.zones.length && !p.zones.some((z) => f.zones.includes(z))) return false;
+  if (f.mapZone && mapZoneFor(p) !== f.mapZone) return false;
   if (f.metro.length && !p.metro.some((m) => f.metro.includes(m))) return false;
   if (f.personal && mine) {
     if (f.personal === "saved" && !mine.saved.has(p.slug)) return false;
@@ -72,6 +81,24 @@ function passesFacets(p: Place, f: FilterState, mine?: Mine, now?: Clock): boole
   if (f.maxPrice !== null && p.priceLevel !== undefined && p.priceLevel > f.maxPrice) return false;
   if (f.openLate && !p.openLate) return false;
   return true;
+}
+
+function matchesPujaType(p: Place, wanted: PujaType[]): boolean {
+  const tags = new Set(p.tags.map((tag) => tag.toLowerCase()));
+  const isBonedi = p.category === "bonedi_bari";
+  const isPandal = p.category === "pandal";
+  const isBig = isPandal && ((p.ratingCount ?? 0) >= 1000 || (p.awards?.length ?? 0) > 0 || p.crowd === "extreme");
+  const isTheme = isPandal && (tags.has("theme") || Boolean(p.theme));
+  const isTraditional = isPandal && (tags.has("traditional") || tags.has("classic"));
+  const isHousing = isPandal && ([...tags].some((tag) => ["housing", "residential", "society", "colony"].includes(tag)) || /housing|residency|residential|colony/i.test(p.name.en));
+  const isOther = isPandal && !isBig && !isTheme && !isTraditional && !isHousing;
+  return wanted.some((type) =>
+    type === "bonedi" ? isBonedi :
+    type === "big" ? isBig :
+    type === "theme" ? isTheme :
+    type === "traditional" ? isTraditional :
+    type === "housing" ? isHousing : isOther,
+  );
 }
 
 /**
@@ -96,7 +123,9 @@ export function applyFilters(places: Place[], f: FilterState, searchIds: Set<str
 }
 
 export const activeFacetCount = (f: FilterState) =>
+  f.pujaTypes.length +
   f.zones.length +
+  (f.mapZone ? 1 : 0) +
   f.metro.length +
   f.cuisines.length +
   f.vibes.length +

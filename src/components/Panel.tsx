@@ -1,18 +1,18 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
-import { CaretDown, CaretUp, CheckCircle, FirstAid, Heart, MagnifyingGlass, MapTrifold, Path, X } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { CaretDown, CaretUp, CheckCircle, FirstAid, Heart, MapTrifold, Path } from "@phosphor-icons/react";
 import { FilterGroups, FilterToggle } from "@/components/filters/Filters";
 import { PlaceDetail } from "@/components/place/PlaceDetail";
 import { PlanView } from "@/components/plan/PlanView";
 import { PlaceList } from "@/components/place/PlaceList";
 import { Chip } from "@/components/ui/Chip";
 import { TodayStrip } from "@/components/TodayStrip";
-import { LogoMark } from "@/components/ui/Logo";
 import { CATEGORY_META } from "@/lib/categories";
 import { placeBySlug } from "@/lib/data";
-import { CATEGORIES } from "@/lib/schema";
+import { CATEGORIES, type Category } from "@/lib/schema";
+import { PUJA_TYPES, type PujaType } from "@/lib/filter";
 import { useFiltered } from "@/lib/useFiltered";
 import { useUI, type FilterMode } from "@/store/ui";
 import { clsx } from "clsx";
@@ -22,8 +22,18 @@ const MODES: { id: FilterMode; label: string; hint: string }[] = [
   { id: "filter", label: "Filter", hint: "Hide everything that doesn't match" },
 ];
 
+const PUJA_TYPE_LABEL: Record<PujaType, string> = {
+  big: "Big pujas",
+  bonedi: "Bonedi Bari",
+  theme: "Theme",
+  traditional: "Traditional",
+  housing: "Housing",
+  other: "Other pujas",
+};
+const FOOD_LAYERS: Category[] = ["cafe", "restaurant", "sweets", "street_food"];
+
 export function Panel({ onSearchFocus }: { onSearchFocus?: () => void }) {
-  const { list, matched, visibleCount } = useFiltered();
+  const { list } = useFiltered();
   const { query, mode, selected, filters, tab, showAmenities } = useUI();
   const stopCount = useUI((s) => s.route.stops.length);
   const savedCount = useUI((s) => s.saved.length);
@@ -31,7 +41,6 @@ export function Panel({ onSearchFocus }: { onSearchFocus?: () => void }) {
   const { setQuery, setMode, toggleLayer, setTab, select, setPersonal, toggleAmenities } = useUI.getState();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterSectionCollapsed, setFilterSectionCollapsed] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
   const place = selected ? placeBySlug.get(selected) : undefined;
 
   useEffect(() => {
@@ -41,7 +50,7 @@ export function Panel({ onSearchFocus }: { onSearchFocus?: () => void }) {
       if (e.key === "/" && !isInput) {
         e.preventDefault();
         setTab("explore");
-        searchRef.current?.focus();
+        onSearchFocus?.();
       } else if (e.key === "Escape" && selected) {
         select(null);
       }
@@ -62,21 +71,7 @@ export function Panel({ onSearchFocus }: { onSearchFocus?: () => void }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="space-y-2 lg:space-y-3 px-3 pb-2 pt-1 lg:px-4 lg:pb-3">
-        <div className="flex items-baseline justify-between">
-          <h1 className="flex items-center gap-2 lg:gap-2.5 font-display text-lg lg:text-xl font-semibold">
-            <LogoMark />
-            <span>
-              Pujo<span className="text-primary">Guide</span>
-            </span>
-          </h1>
-          {tab === "explore" && (
-            <span className="text-[11px] lg:text-xs text-muted" aria-live="polite">
-              {matched.size} of {visibleCount} shown
-            </span>
-          )}
-        </div>
-
+      <div className="space-y-2 px-3 pb-2 pt-2 lg:space-y-3 lg:px-4 lg:pb-3">
         {!query && <TodayStrip />}
 
         <div role="tablist" className="grid grid-cols-2 rounded-full border border-line bg-surface p-0.5 relative">
@@ -124,36 +119,6 @@ export function Panel({ onSearchFocus }: { onSearchFocus?: () => void }) {
 
         {tab === "explore" && (
           <>
-        <label className="relative block">
-          <MagnifyingGlass size={16} weight="bold" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted lg:hidden" />
-          <MagnifyingGlass size={18} weight="bold" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted hidden lg:block" />
-          <input
-            ref={searchRef}
-            value={query}
-            onFocus={onSearchFocus}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search pandals, baris, areas, food…"
-            enterKeyHint="search"
-            className="h-9 lg:h-12 w-full rounded-full border border-line bg-surface pl-9 lg:pl-10 pr-9 lg:pr-12 text-xs lg:text-base outline-none transition-shadow focus:ring-2 focus:ring-primary/40"
-          />
-          {!query && (
-            <span className="pointer-events-none absolute right-2.5 lg:right-3 top-1/2 -translate-y-1/2 rounded-md border border-line bg-surface2 px-1 lg:px-1.5 py-0.5 font-mono text-[9px] lg:text-[10px] font-semibold text-muted shadow-2xs">
-              /
-            </span>
-          )}
-          {query && (
-            <button
-              type="button"
-              aria-label="Clear search"
-              onClick={() => setQuery("")}
-              className="absolute right-1.5 lg:right-2 top-1/2 grid size-6 lg:size-8 -translate-y-1/2 place-items-center rounded-full text-muted hover:bg-surface2"
-            >
-              <X size={13} weight="bold" className="lg:hidden" />
-              <X size={15} weight="bold" className="hidden lg:block" />
-            </button>
-          )}
-        </label>
-
         {filterSectionCollapsed ? (
           <div className="flex items-center justify-between rounded-2xl border border-line bg-surface p-1.5 lg:p-2.5 text-[11px] lg:text-xs">
             <span className="font-semibold text-muted truncate pr-1.5">
@@ -229,7 +194,12 @@ export function Panel({ onSearchFocus }: { onSearchFocus?: () => void }) {
                   Visited ({visitedCount})
                 </Chip>
               )}
-              {CATEGORIES.map((c) => {
+              {PUJA_TYPES.map((type) => (
+                <Chip key={type} active={filters.pujaTypes.includes(type)} onClick={() => useUI.getState().toggle("pujaTypes", type)}>
+                  {PUJA_TYPE_LABEL[type]}
+                </Chip>
+              ))}
+              {CATEGORIES.filter((c) => FOOD_LAYERS.includes(c)).map((c) => {
                 const meta = CATEGORY_META[c];
                 const Icon = meta.icon;
                 return (

@@ -39,7 +39,7 @@ describe("Saved and Visited personal storage & filter bypass", () => {
 
 describe("QR Code generation & share text formatting", () => {
   it("generates a valid SVG string with error correction for a route payload", () => {
-    const url = shareUrl("https://pujoguide.com", ["bagbazar-sarbojanin", "college-square"]);
+    const url = shareUrl("https://pujomap.com", ["bagbazar-sarbojanin", "college-square"]);
     const svg = generateQRCodeSVG(url);
 
     expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
@@ -48,14 +48,14 @@ describe("QR Code generation & share text formatting", () => {
     expect(svg.length).toBeGreaterThan(100);
   });
 
-  it("formats a shareable WhatsApp text with stop count and PujoGuide URL", () => {
+  it("formats a shareable WhatsApp text with stop count and PujoMap URL", () => {
     const testPlaces = (places as Place[]).slice(0, 3);
-    const formatted = formattedShareText("https://pujoguide.com", testPlaces);
+    const formatted = formattedShareText("https://pujomap.com", testPlaces);
 
     expect(formatted).toContain("My Pujo 2026 Plan (3 stops)");
     expect(formatted).toContain("1. Hathkhola Dutta Bari");
-    expect(formatted).toContain("Open route on PujoGuide:");
-    expect(formatted).toContain("https://pujoguide.com/?route=");
+    expect(formatted).toContain("Open route on PujoMap:");
+    expect(formatted).toContain("https://pujomap.com/?route=");
   });
 });
 

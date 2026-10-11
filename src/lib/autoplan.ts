@@ -147,7 +147,7 @@ export function mealScore(p: Place, slot: (typeof SLOTS)[number]["id"], r: PlanR
   if (p.rating) s += (p.rating - 4) * 1.1;
   if (p.ratingCount && p.ratingCount > 300) s += 0.2;
   if (p.info === "researched") s += 0.4;
-  if (p.coordConfidence === "verified") s += 0.1;
+  if (p.coordConfidence === "verified" || p.coordConfidence === "directory") s += 0.1;
 
   if (slot === "lunch") {
     if (p.category === "restaurant") s += 0.8;
@@ -389,6 +389,7 @@ function widen(regions: Region[]): Region[] {
   const set = new Set<Region>(regions);
   if (set.has("north")) set.add("central");
   if (set.has("south")) set.add("central");
+  if (set.has("east") || set.has("howrah")) set.add("central");
   if (set.has("central")) {
     set.add("north");
     set.add("south");

@@ -13,13 +13,13 @@ const bengali = Hind_Siliguri({
 });
 
 export const metadata: Metadata = {
-  title: "PujoGuide: Kolkata Durga Puja map & route planner",
+  title: "PujoMap: Kolkata Durga Puja map & route planner",
   description:
     "Every Bonedi Bari and pandal in Kolkata on one map. Filter by area, find great food nearby, and plan your pandal-hopping route.",
   openGraph: {
     type: "website",
-    siteName: "PujoGuide",
-    title: "PujoGuide: Kolkata Durga Puja map & route planner",
+    siteName: "PujoMap",
+    title: "PujoMap: Kolkata Durga Puja map & route planner",
     description:
       "Every Bonedi Bari and pandal in Kolkata on one map. Filter by area, find great food nearby, and plan your pandal-hopping route.",
   },
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${jakarta.variable} ${fraunces.variable} ${bengali.variable} h-full`}
     >
       <body className="h-full overflow-hidden">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
           {children}
           <RegisterSW />
         </ThemeProvider>

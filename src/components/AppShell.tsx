@@ -6,12 +6,16 @@ import { MapCanvas } from "@/components/map/MapCanvas";
 import { EssentialsSheet } from "@/components/EssentialsSheet";
 import { Panel } from "@/components/Panel";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { LogoMark } from "@/components/ui/Logo";
+import { MagnifyingGlass, X } from "@phosphor-icons/react";
+import { useFiltered } from "@/lib/useFiltered";
 import { placeBySlug } from "@/lib/data";
 import { useLegLoader } from "@/lib/route/useLegs";
 import { useUI } from "@/store/ui";
+import { MapZoneSelector } from "@/components/MapZoneSelector";
 
-const DESKTOP = "(min-width: 1024px)";
-const PANEL_W = 420;
+const DESKTOP = "(min-width: 640px)";
+const PANEL_W = 320;
 // Fractions of the viewport height visible: peek (search + chips), half, full.
 const SNAPS = [0.27, 0.55, 0.92];
 
@@ -33,6 +37,8 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 export function AppShell() {
   const isDesktop = useIsDesktop();
   const selected = useUI((s) => s.selected);
+  const query = useUI((s) => s.query);
+  const { matched, visibleCount } = useFiltered();
   const [snap, setSnap] = useState<number | string | null>(SNAPS[0]);
 
   useLegLoader();
@@ -53,7 +59,6 @@ export function AppShell() {
     return () => observer.disconnect();
   }, []);
 
-  // Restore the saved route, then apply deep links: /?place=slug and /?route=a,b,c (shared plan).
   useEffect(() => {
     // Read the URL *now*: the URL-sync effect below clears ?place= as soon as the selection is empty.
     const params = new URLSearchParams(location.search);
@@ -63,7 +68,16 @@ export function AppShell() {
         useUI.getState().setStops(route);
         useUI.getState().setTab("plan");
       }
-      const slug = params.get("place");
+
+      if (location.pathname.startsWith("/area/")) {
+        const zoneId = location.pathname.slice(6);
+        useUI.getState().toggle("zones", zoneId as never);
+      } else if (location.pathname.startsWith("/metro/")) {
+        const metroId = decodeURIComponent(location.pathname.slice(7));
+        useUI.getState().toggle("metro", metroId as never);
+      }
+
+      const slug = location.pathname.startsWith("/p/") ? location.pathname.slice(3) : params.get("place");
       if (slug && placeBySlug.has(slug)) useUI.getState().select(slug);
     });
   }, []);
@@ -71,8 +85,15 @@ export function AppShell() {
   // Keep the URL shareable as the selection changes.
   useEffect(() => {
     const url = new URL(location.href);
-    if (selected) url.searchParams.set("place", selected);
-    else url.searchParams.delete("place");
+    if (selected) {
+      url.searchParams.set("place", selected);
+    } else {
+      url.searchParams.delete("place");
+    }
+    // Only rewrite the pathname back to root if we are navigating away from an SEO route inside the SPA
+    if (url.pathname.startsWith("/p/") || url.pathname.startsWith("/area/") || url.pathname.startsWith("/metro/")) {
+      url.pathname = "/";
+    }
     history.replaceState(null, "", url);
   }, [selected]);
 
@@ -92,20 +113,50 @@ export function AppShell() {
   }
 
   return (
-    <main ref={mainRef} className="relative flex h-dvh w-full overflow-hidden">
+    <main ref={mainRef} className="relative flex h-dvh w-full flex-col overflow-hidden bg-bg">
       <OfflineBanner />
       <EssentialsSheet />
-      {/* Always in the DOM at its final width on wide screens, so the map never jumps when we learn the viewport size. */}
-      <aside
-        style={{ width: PANEL_W }}
-        className="relative z-30 hidden shrink-0 flex-col border-r border-line bg-bg pt-4 shadow-float lg:flex"
-      >
-        {isDesktop && <Panel />}
-      </aside>
+      <header className="festival-header relative z-50 flex h-14 shrink-0 items-center gap-3 border-b border-line px-3 shadow-xs backdrop-blur-md sm:px-5">
+        <a href="/" aria-label="PujoMap home" className="flex shrink-0 items-center gap-2.5">
+          <LogoMark />
+          <span className="leading-none"><span className="block font-display text-lg font-bold tracking-tight text-fg">Pujo<span className="text-primary">Map</span></span><span className="mt-1 block text-[8px] font-extrabold uppercase tracking-[.2em] text-muted">Kolkata · Puja Atlas</span></span>
+        </a>
+        <div className="mx-1 hidden h-7 w-px bg-line sm:block" />
+        <label className="relative min-w-0 max-w-2xl flex-1">
+          <MagnifyingGlass size={17} weight="bold" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <input
+            value={query}
+            onFocus={() => !isDesktop && setSnap(0.92)}
+            onChange={(e) => useUI.getState().setQuery(e.target.value)}
+            placeholder="Search pandals, baris, areas, food…"
+            enterKeyHint="search"
+            aria-label="Search pandals, baris, areas, and food"
+            className="h-10 w-full rounded-2xl border border-line bg-surface/90 pl-9 pr-10 text-sm outline-none transition-shadow placeholder:text-muted/80 focus:ring-2 focus:ring-primary/35"
+          />
+          {query ? (
+            <button type="button" aria-label="Clear search" onClick={() => useUI.getState().setQuery("")} className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted hover:bg-surface2"><X size={15} weight="bold" /></button>
+          ) : (
+            <span className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-line bg-bg px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted shadow-2xs sm:block">/</span>
+          )}
+        </label>
+        <span className="hidden whitespace-nowrap text-xs font-medium text-muted md:block" aria-live="polite">{matched.size} of {visibleCount} shown</span>
+        <ThemeToggle className="shrink-0" />
+      </header>
 
-      <div className="relative z-0 min-w-0 flex-1 isolate">
-        <MapCanvas />
-        <ThemeToggle className="absolute right-3 top-3 z-20" />
+      <MapZoneSelector />
+
+      <div className="relative flex min-h-0 flex-1">
+        {/* Sidebar and map share the available area below the toolbar. */}
+        <aside
+          style={{ width: PANEL_W }}
+          className="relative z-30 hidden shrink-0 flex-col border-r border-line bg-bg shadow-float min-[640px]:flex"
+        >
+          {isDesktop && <Panel onSearchFocus={() => document.querySelector<HTMLInputElement>('header input')?.focus()} />}
+        </aside>
+
+        <div className="relative z-0 min-w-0 flex-1 isolate">
+          <MapCanvas />
+        </div>
       </div>
 
       {isDesktop === false && (
@@ -130,7 +181,7 @@ export function AppShell() {
                 style={{ height: `calc(${(typeof snap === "number" ? snap : SNAPS[0]) * 100}dvh - 1.75rem)` }}
                 className="pb-[env(safe-area-inset-bottom)]"
               >
-                <Panel onSearchFocus={() => !isDesktop && setSnap(0.92)} />
+                <Panel onSearchFocus={() => document.querySelector<HTMLInputElement>('header input')?.focus()} />
               </div>
             </Drawer.Content>
           </Drawer.Portal>
